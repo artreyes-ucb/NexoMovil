@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="NexoMovil.Api/NexoMovil.Api.csproj" />
+  <Project Path="NexoMovil.Core/NexoMovil.Core.csproj" Id="a67ba3fc-1634-4f2a-8fc2-ac4fdcdae979" />
+  <Project Path="NexoMovil.Infrastructure/NexoMovil.Infrastructure.csproj" />
+  <Project Path="NexoMovil.Services/NexoMovil.Services.csproj" Id="4f99634c-6f8c-412a-9a9a-5c8eac81e733" />
+</Solution>
