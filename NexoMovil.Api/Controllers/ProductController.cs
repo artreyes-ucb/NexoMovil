@@ -80,7 +80,15 @@ namespace NexoMovil.Api.Controllers
         {
             var validation = await _crearProductoValidator.ValidateAsync(newProductDto);
             if (!validation.IsValid)
-                throw new ValidationException(validation.Errors);
+            {
+                throw new BusinessException(
+                    message: "Errores de validación en los datos enviados.",
+                    details: validation.Errors.Select(e => new
+                    {
+                        field = e.PropertyName,
+                        error = e.ErrorMessage
+                    }));
+            }
 
             try
             {
@@ -113,7 +121,15 @@ namespace NexoMovil.Api.Controllers
 
             var validation = await _actualizarProductoValidator.ValidateAsync(productDto);
             if (!validation.IsValid)
-                throw new ValidationException(validation.Errors);
+            {
+                throw new BusinessException(
+                    message: "Errores de validación en los datos enviados.",
+                    details: validation.Errors.Select(e => new
+                    {
+                        field = e.PropertyName,
+                        error = e.ErrorMessage
+                    }));
+            }
 
             var product = await _productService.GetProductByIdAsync(id);
             if (product == null)
@@ -170,7 +186,15 @@ namespace NexoMovil.Api.Controllers
         {
             var validation = await _inventoryValidator.ValidateAsync(dto);
             if (!validation.IsValid)
-                throw new ValidationException(validation.Errors);
+            {
+                throw new BusinessException(
+                    message: "Errores de validación en los datos enviados.",
+                    details: validation.Errors.Select(e => new
+                    {
+                        field = e.PropertyName,
+                        error = e.ErrorMessage
+                    }));
+            }
 
             try
             {

@@ -99,7 +99,15 @@ namespace NexoMovil.Api.Controllers
             // Identificadores > 0 y cantidad >= 1 (RN-11) mediante FluentValidation.
             var validation = await _saleValidator.ValidateAsync(dto);
             if (!validation.IsValid)
-                throw new ValidationException(validation.Errors);
+            {
+                throw new BusinessException(
+                    message: "Errores de validación en los datos enviados.",
+                    details: validation.Errors.Select(e => new
+                    {
+                        field = e.PropertyName,
+                        error = e.ErrorMessage
+                    }));
+            }
 
             try
             {
