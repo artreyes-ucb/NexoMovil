@@ -9,7 +9,7 @@ namespace NexoMovil.Infrastructure.Mappings
         public SaleProfile()
         {
             // CU-02: conversión del request de venta a la entidad Sale.
-            // La fecha y el estado se asignan aquí; el total lo calcula el controlador (RN-02).
+            // La fecha y el estado se asignan aquí; el total lo calcula SaleService (RN-02).
             CreateMap<SaleRequestDto, Sale>()
                 .ForMember(dest => dest.Date, opt => opt.MapFrom(src => DateTime.Now))
                 .ForMember(dest => dest.IsActive, opt => opt.MapFrom(src => true));

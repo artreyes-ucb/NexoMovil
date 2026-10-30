@@ -1,10 +1,13 @@
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
+using NexoMovil.Api.Filters;
 using NexoMovil.Core.DTOs;
 using NexoMovil.Core.Interfaces;
 using NexoMovil.Infrastructure.Data;
 using NexoMovil.Infrastructure.Mappings;
 using NexoMovil.Infrastructure.Repositories;
+using NexoMovil.Services.Interfaces;
+using NexoMovil.Services.Services;
 using NexoMovil.Services.Validators.Product;
 using NexoMovil.Services.Validators.Sale;
 
@@ -26,6 +29,13 @@ namespace NexoMovil.Api
             builder.Services.AddScoped(typeof(IBaseRepository<>), typeof(BaseRepository<>));
             builder.Services.AddScoped<IProductRepository, ProductRepository>();
             builder.Services.AddScoped<ISaleRepository, SaleRepository>();
+            builder.Services.AddScoped<IUserRepository, UserRepository>();
+            builder.Services.AddScoped<IInvoiceRepository, InvoiceRepository>();
+
+            // Inyección de dependencias (Servicios)
+            builder.Services.AddScoped<IProductService, ProductService>();
+            builder.Services.AddScoped<ISaleService, SaleService>();
+            builder.Services.AddScoped<IInvoiceService, InvoiceService>();
 
             // Validadores de FluentValidation
             builder.Services.AddScoped<IValidator<InventoryIngressDto>, InventoryIngressDtoValidator>();
@@ -41,6 +51,9 @@ namespace NexoMovil.Api
             builder.Services.AddAutoMapper(typeof(ProductProfile).Assembly);
 
             var app = builder.Build();
+
+            // Manejo centralizado de excepciones de negocio y de validación.
+            app.UseMiddleware<ExceptionHandlingMiddleware>();
 
             // Configure the HTTP request pipeline.
             if (app.Environment.IsDevelopment())
