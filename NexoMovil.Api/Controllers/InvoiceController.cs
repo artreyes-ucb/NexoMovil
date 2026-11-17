@@ -1,4 +1,3 @@
-using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
 using NexoMovil.Api.Response;
 using NexoMovil.Core.DTOs;
@@ -13,24 +12,10 @@ namespace NexoMovil.Api.Controllers
     public class InvoiceController : ControllerBase
     {
         private readonly IInvoiceService _invoiceService;
-        private readonly IMapper _mapper;
 
-        public InvoiceController(
-            IInvoiceService invoiceService,
-            IMapper mapper)
+        public InvoiceController(IInvoiceService invoiceService)
         {
             _invoiceService = invoiceService;
-            _mapper = mapper;
-        }
-
-        // CU-04: listar todas las facturas.
-        [HttpGet]
-        public async Task<IActionResult> GetAll()
-        {
-            var invoices = await _invoiceService.GetAllInvoicesAsync();
-            var invoiceDtos = _mapper.Map<IEnumerable<InvoiceDto>>(invoices);
-
-            return Ok(new ApiResponse<IEnumerable<InvoiceDto>>(invoiceDtos));
         }
 
         // CU-04: obtener una factura por su Id.
@@ -44,7 +29,7 @@ namespace NexoMovil.Api.Controllers
             if (invoice == null)
                 throw new BusinessException("Factura no encontrada.", HttpStatusCode.NotFound);
 
-            return Ok(new ApiResponse<InvoiceDto>(_mapper.Map<InvoiceDto>(invoice)));
+            return Ok(new ApiResponse<InvoiceDto>(invoice));
         }
 
         // CU-04: obtener la factura asociada a una venta.
@@ -58,7 +43,7 @@ namespace NexoMovil.Api.Controllers
             if (invoice == null)
                 throw new BusinessException("No se encontró una factura para la venta indicada.", HttpStatusCode.NotFound);
 
-            return Ok(new ApiResponse<InvoiceDto>(_mapper.Map<InvoiceDto>(invoice)));
+            return Ok(new ApiResponse<InvoiceDto>(invoice));
         }
 
         // CU-04: generar la factura de una venta.
@@ -71,9 +56,8 @@ namespace NexoMovil.Api.Controllers
             try
             {
                 var invoice = await _invoiceService.GenerateInvoiceAsync(saleId);
-                var invoiceDto = _mapper.Map<InvoiceDto>(invoice);
 
-                return Ok(new ApiResponse<InvoiceDto>(invoiceDto));
+                return Ok(new ApiResponse<InvoiceDto>(invoice));
             }
             catch (BusinessException)
             {

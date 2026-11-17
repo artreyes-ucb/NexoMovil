@@ -1,3 +1,4 @@
+using NexoMovil.Core.DTOs;
 using NexoMovil.Core.Entities;
 
 namespace NexoMovil.Core.Interfaces
@@ -6,12 +7,10 @@ namespace NexoMovil.Core.Interfaces
     {
         Task<bool> ExistsBySaleIdAsync(int saleId);
 
-        Task<Invoice?> GetByIdWithDetailsAsync(int id);
-
-        Task<Invoice?> GetBySaleIdWithDetailsAsync(int saleId);
-
-        Task<IEnumerable<Invoice>> GetAllWithDetailsAsync();
-
         Task<string> GenerateInvoiceNumberAsync();
+
+        Task<InvoiceDto?> GetByIdDapperAsync(int id);
+
+        Task<InvoiceDto?> GetBySaleIdDapperAsync(int saleId);
     }
 }

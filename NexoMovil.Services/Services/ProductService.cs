@@ -2,6 +2,7 @@ using NexoMovil.Core.DTOs;
 using NexoMovil.Core.Entities;
 using NexoMovil.Core.Exceptions;
 using NexoMovil.Core.Interfaces;
+using NexoMovil.Core.QueryFilters;
 using NexoMovil.Services.Interfaces;
 using System.Net;
 
@@ -9,30 +10,29 @@ namespace NexoMovil.Services.Services
 {
     public class ProductService : IProductService
     {
-        private readonly IProductRepository _productRepository;
-        private readonly ISaleRepository _saleRepository;
+        private readonly IUnitOfWork _unitOfWork;
 
-        public ProductService(
-            IProductRepository productRepository,
-            ISaleRepository saleRepository)
+        public ProductService(IUnitOfWork unitOfWork)
         {
-            _productRepository = productRepository;
-            _saleRepository = saleRepository;
+            _unitOfWork = unitOfWork;
         }
 
-        public async Task<IEnumerable<Product>> GetAllProductsAsync()
+        public async Task<IEnumerable<Product>> GetAvailableProductsAsync(int limit = 10)
         {
-            return await _productRepository.GetAllAsync();
+            return await _unitOfWork.ProductRepository.GetAllAvailableDapperAsync(limit);
         }
 
-        public async Task<IEnumerable<Product>> GetAvailableProductsAsync()
+        public async Task<IEnumerable<Product>> GetProductsAsync(ProductQueryFilter filter)
         {
-            return await _productRepository.GetAllAvailableAsync();
+            if (filter.MaxPrice.HasValue && filter.MaxPrice.Value < 0)
+                throw new BusinessException("El precio máximo no puede ser negativo.", HttpStatusCode.BadRequest);
+
+            return await _unitOfWork.ProductRepository.GetFilteredDapperAsync(filter);
         }
 
         public async Task<Product?> GetProductByIdAsync(int id)
         {
-            return await _productRepository.GetByIdAsync(id);
+            return await _unitOfWork.ProductRepository.GetByIdDapperAsync(id);
         }
 
         public async Task InsertProductAsync(Product product)
@@ -47,8 +47,8 @@ namespace NexoMovil.Services.Services
 
             product.CreatedAt = DateTime.Now;
 
-            await _productRepository.Add(product);
-            await _productRepository.SaveChangesAsync();
+            await _unitOfWork.ProductRepository.Add(product);
+            await _unitOfWork.SaveChangesAsync();
         }
 
         public async Task UpdateProductAsync(Product product)
@@ -61,26 +61,26 @@ namespace NexoMovil.Services.Services
             if (product.Stock < 0)
                 throw new BusinessException("El stock no puede ser negativo.", HttpStatusCode.BadRequest);
 
-            _productRepository.Update(product);
-            await _productRepository.SaveChangesAsync();
+            _unitOfWork.ProductRepository.Update(product);
+            await _unitOfWork.SaveChangesAsync();
         }
 
         public async Task DeleteProductAsync(int id)
         {
-            var product = await _productRepository.GetByIdAsync(id);
+            var product = await _unitOfWork.ProductRepository.GetByIdAsync(id);
             if (product == null)
                 throw new BusinessException("Producto no encontrado.", HttpStatusCode.NotFound);
 
-            if (await _saleRepository.ExistsByProductIdAsync(id))
+            if (await _unitOfWork.SaleRepository.ExistsByProductIdAsync(id))
                 throw new BusinessException("No se puede eliminar el producto porque tiene ventas asociadas.", HttpStatusCode.Conflict);
 
-            await _productRepository.Delete(id);
-            await _productRepository.SaveChangesAsync();
+            await _unitOfWork.ProductRepository.Delete(id);
+            await _unitOfWork.SaveChangesAsync();
         }
 
         public async Task<Product> AddInventoryIngressAsync(InventoryIngressDto dto)
         {
-            var product = await _productRepository.GetByIdAsync(dto.ProductId);
+            var product = await _unitOfWork.ProductRepository.GetByIdAsync(dto.ProductId);
             if (product == null)
                 throw new BusinessException("Producto no encontrado.", HttpStatusCode.NotFound);
 
@@ -91,8 +91,8 @@ namespace NexoMovil.Services.Services
             // RN-03 y RN-09: la cantidad ya está validada (> 0) y el stock solo crece.
             product.Stock += dto.Quantity;
 
-            _productRepository.Update(product);
-            await _productRepository.SaveChangesAsync();
+            _unitOfWork.ProductRepository.Update(product);
+            await _unitOfWork.SaveChangesAsync();
 
             return product;
         }

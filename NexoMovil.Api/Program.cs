@@ -25,14 +25,12 @@ namespace NexoMovil.Api
                 options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString)));
             #endregion
 
-            // Inyección de dependencias (Repositorios)
-            builder.Services.AddScoped(typeof(IBaseRepository<>), typeof(BaseRepository<>));
-            builder.Services.AddScoped<IProductRepository, ProductRepository>();
-            builder.Services.AddScoped<ISaleRepository, SaleRepository>();
-            builder.Services.AddScoped<IUserRepository, UserRepository>();
-            builder.Services.AddScoped<IInvoiceRepository, InvoiceRepository>();
+            // Infraestructura Dapper
+            builder.Services.AddSingleton<IDbConnectionFactory, DbConnectionFactory>();
+            builder.Services.AddScoped<IDapperContext, DapperContext>();
 
             // Inyección de dependencias (Servicios)
+            builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
             builder.Services.AddScoped<IProductService, ProductService>();
             builder.Services.AddScoped<ISaleService, SaleService>();
             builder.Services.AddScoped<IInvoiceService, InvoiceService>();

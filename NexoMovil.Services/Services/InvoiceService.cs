@@ -1,3 +1,4 @@
+using NexoMovil.Core.DTOs;
 using NexoMovil.Core.Entities;
 using NexoMovil.Core.Exceptions;
 using NexoMovil.Core.Interfaces;
@@ -8,39 +9,29 @@ namespace NexoMovil.Services.Services
 {
     public class InvoiceService : IInvoiceService
     {
-        private readonly IInvoiceRepository _invoiceRepository;
-        private readonly ISaleRepository _saleRepository;
+        private readonly IUnitOfWork _unitOfWork;
 
-        public InvoiceService(
-            IInvoiceRepository invoiceRepository,
-            ISaleRepository saleRepository)
+        public InvoiceService(IUnitOfWork unitOfWork)
         {
-            _invoiceRepository = invoiceRepository;
-            _saleRepository = saleRepository;
-        }
-
-        // CU-04: listar todas las facturas.
-        public async Task<IEnumerable<Invoice>> GetAllInvoicesAsync()
-        {
-            return await _invoiceRepository.GetAllWithDetailsAsync();
+            _unitOfWork = unitOfWork;
         }
 
         // CU-04: obtener una factura por su Id.
-        public async Task<Invoice?> GetInvoiceByIdAsync(int id)
+        public async Task<InvoiceDto?> GetInvoiceByIdAsync(int id)
         {
-            return await _invoiceRepository.GetByIdWithDetailsAsync(id);
+            return await _unitOfWork.InvoiceRepository.GetByIdDapperAsync(id);
         }
 
         // CU-04: obtener la factura asociada a una venta.
-        public async Task<Invoice?> GetInvoiceBySaleIdAsync(int saleId)
+        public async Task<InvoiceDto?> GetInvoiceBySaleIdAsync(int saleId)
         {
-            return await _invoiceRepository.GetBySaleIdWithDetailsAsync(saleId);
+            return await _unitOfWork.InvoiceRepository.GetBySaleIdDapperAsync(saleId);
         }
 
         // CU-04: generar la factura de una venta.
-        public async Task<Invoice> GenerateInvoiceAsync(int saleId)
+        public async Task<InvoiceDto> GenerateInvoiceAsync(int saleId)
         {
-            var sale = await _saleRepository.GetByIdAsync(saleId);
+            var sale = await _unitOfWork.SaleRepository.GetByIdAsync(saleId);
             if (sale == null)
                 throw new BusinessException("Venta no encontrada.", HttpStatusCode.NotFound);
 
@@ -49,7 +40,7 @@ namespace NexoMovil.Services.Services
                 throw new BusinessException("No se puede generar una factura para una venta anulada.", HttpStatusCode.Conflict);
 
             // RN-12: una venta solo puede tener una factura.
-            if (await _invoiceRepository.ExistsBySaleIdAsync(saleId))
+            if (await _unitOfWork.InvoiceRepository.ExistsBySaleIdAsync(saleId))
                 throw new BusinessException("Esta venta ya tiene una factura generada.", HttpStatusCode.Conflict);
 
             var invoice = new Invoice
@@ -57,13 +48,13 @@ namespace NexoMovil.Services.Services
                 SaleId = saleId,
                 IssuedAt = DateTime.Now,
                 // RN-13: número único con formato PH-2026-000001.
-                InvoiceNumber = await _invoiceRepository.GenerateInvoiceNumberAsync()
+                InvoiceNumber = await _unitOfWork.InvoiceRepository.GenerateInvoiceNumberAsync()
             };
 
-            await _invoiceRepository.Add(invoice);
-            await _invoiceRepository.SaveChangesAsync();
+            await _unitOfWork.InvoiceRepository.Add(invoice);
+            await _unitOfWork.SaveChangesAsync();
 
-            var createdInvoice = await _invoiceRepository.GetByIdWithDetailsAsync(invoice.Id);
+            var createdInvoice = await _unitOfWork.InvoiceRepository.GetByIdDapperAsync(invoice.Id);
             if (createdInvoice == null)
                 throw new BusinessException("No se pudo recuperar la factura generada.", HttpStatusCode.InternalServerError);
 

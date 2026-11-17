@@ -1,28 +1,58 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using NexoMovil.Core.DTOs;
 using NexoMovil.Core.Entities;
 using NexoMovil.Core.Interfaces;
+using NexoMovil.Core.QueryFilters;
 using NexoMovil.Infrastructure.Data;
+using NexoMovil.Infrastructure.Queries;
 
 namespace NexoMovil.Infrastructure.Repositories
 {
     public class SaleRepository : BaseRepository<Sale>, ISaleRepository
     {
-        public SaleRepository(NexoMovilContext context) : base(context) { }
+        private readonly IDapperContext _dapper;
 
-        public async Task<Sale?> GetByIdWithDetailsAsync(int id)
+        public SaleRepository(NexoMovilContext context, IDapperContext dapper)
+            : base(context)
         {
-            return await _entities
-                .Include(s => s.Product)
-                .Include(s => s.User)
-                .FirstOrDefaultAsync(s => s.Id == id);
+            _dapper = dapper;
         }
 
-        public async Task<IEnumerable<Sale>> GetAllWithDetailsAsync()
+        // RN-10: el reporte solo considera ventas activas.
+        public async Task<IEnumerable<SellerSummaryDto>> GetDailyReportAsync(DateTime date)
         {
-            return await _entities
-                .Include(s => s.Product)
-                .Include(s => s.User)
-                .ToListAsync();
+            var start = date.Date;
+            var end = start.AddDays(1);
+
+            return await _dapper.QueryAsync<SellerSummaryDto>(
+                SaleQueries.GetDailyReport,
+                new { Start = start, End = end });
+        }
+
+        public async Task<IEnumerable<SaleResponseDto>> GetAllWithDetailsDapperAsync(int limit = 10)
+        {
+            return await _dapper.QueryAsync<SaleResponseDto>(
+                SaleQueries.GetAllWithDetails,
+                new { Limit = limit });
+        }
+
+        public async Task<IEnumerable<SaleResponseDto>> GetFilteredWithDetailsDapperAsync(SaleQueryFilter filter)
+        {
+            return await _dapper.QueryAsync<SaleResponseDto>(
+                SaleQueries.GetFilteredWithDetails,
+                new
+                {
+                    IsActive = filter.IsActive,
+                    UserId = filter.UserId,
+                    ProductId = filter.ProductId
+                });
+        }
+
+        public async Task<SaleResponseDto?> GetByIdWithDetailsDapperAsync(int id)
+        {
+            return await _dapper.QueryFirstOrDefaultAsync<SaleResponseDto>(
+                SaleQueries.GetByIdWithDetails,
+                new { Id = id });
         }
 
         public async Task<bool> ExistsByProductIdAsync(int productId)

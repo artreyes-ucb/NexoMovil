@@ -1,35 +1,43 @@
+using NexoMovil.Core.DTOs;
 using NexoMovil.Core.Entities;
 using NexoMovil.Core.Exceptions;
+using NexoMovil.Core.Helpers;
 using NexoMovil.Core.Interfaces;
+using NexoMovil.Core.QueryFilters;
 using NexoMovil.Services.Interfaces;
+using System.Globalization;
 using System.Net;
 
 namespace NexoMovil.Services.Services
 {
     public class SaleService : ISaleService
     {
-        private readonly ISaleRepository _saleRepository;
-        private readonly IProductRepository _productRepository;
-        private readonly IUserRepository _userRepository;
+        private readonly IUnitOfWork _unitOfWork;
 
-        public SaleService(
-            ISaleRepository saleRepository,
-            IProductRepository productRepository,
-            IUserRepository userRepository)
+        public SaleService(IUnitOfWork unitOfWork)
         {
-            _saleRepository = saleRepository;
-            _productRepository = productRepository;
-            _userRepository = userRepository;
+            _unitOfWork = unitOfWork;
         }
 
-        public async Task<IEnumerable<Sale>> GetAllSalesAsync()
+        public async Task<IEnumerable<SaleResponseDto>> GetAllSalesDapperAsync(int limit = 10)
         {
-            return await _saleRepository.GetAllWithDetailsAsync();
+            return await _unitOfWork.SaleRepository.GetAllWithDetailsDapperAsync(limit);
         }
 
-        public async Task<Sale?> GetSaleByIdAsync(int id)
+        public async Task<IEnumerable<SaleResponseDto>> GetSalesAsync(SaleQueryFilter filter)
         {
-            return await _saleRepository.GetByIdWithDetailsAsync(id);
+            if (filter.UserId.HasValue && filter.UserId.Value <= 0)
+                throw new BusinessException("El identificador del vendedor debe ser mayor a cero.", HttpStatusCode.BadRequest);
+
+            if (filter.ProductId.HasValue && filter.ProductId.Value <= 0)
+                throw new BusinessException("El identificador del producto debe ser mayor a cero.", HttpStatusCode.BadRequest);
+
+            return await _unitOfWork.SaleRepository.GetFilteredWithDetailsDapperAsync(filter);
+        }
+
+        public async Task<SaleResponseDto?> GetSaleByIdAsync(int id)
+        {
+            return await _unitOfWork.SaleRepository.GetByIdWithDetailsDapperAsync(id);
         }
 
         public async Task<Sale> InsertSaleAsync(Sale sale)
@@ -39,12 +47,12 @@ namespace NexoMovil.Services.Services
                 throw new BusinessException("La cantidad de la venta debe ser igual o superior a 1.", HttpStatusCode.BadRequest);
 
             // Validación relacional: el producto debe existir antes de registrar la venta.
-            var product = await _productRepository.GetByIdAsync(sale.ProductId);
+            var product = await _unitOfWork.ProductRepository.GetByIdAsync(sale.ProductId);
             if (product == null)
                 throw new BusinessException("El producto no existe.", HttpStatusCode.NotFound);
 
             // Validación relacional: el usuario (vendedor) debe existir antes de registrar la venta.
-            var user = await _userRepository.GetByIdAsync(sale.UserId);
+            var user = await _unitOfWork.UserRepository.GetByIdAsync(sale.UserId);
             if (user == null)
                 throw new BusinessException("El usuario no existe.", HttpStatusCode.NotFound);
 
@@ -70,9 +78,9 @@ namespace NexoMovil.Services.Services
             // RN-09: el stock se descuenta según la cantidad vendida.
             product.Stock -= sale.Quantity;
 
-            _productRepository.Update(product);
-            await _saleRepository.Add(sale);
-            await _saleRepository.SaveChangesAsync();
+            _unitOfWork.ProductRepository.Update(product);
+            await _unitOfWork.SaleRepository.Add(sale);
+            await _unitOfWork.SaveChangesAsync();
 
             // Se asignan después de persistir para que EF Core no intente insertar
             // entidades que ya existen; el mapeo de respuesta necesita estos datos.
@@ -84,13 +92,42 @@ namespace NexoMovil.Services.Services
 
         public async Task UpdateSaleAsync(Sale sale)
         {
-            _saleRepository.Update(sale);
-            await _saleRepository.SaveChangesAsync();
+            _unitOfWork.SaleRepository.Update(sale);
+            await _unitOfWork.SaveChangesAsync();
         }
 
-        public async Task DeleteSaleAsync(int id)
+        public async Task<CashCloseReportDto> GetDailyCashCloseReportAsync(string? date)
         {
-            var sale = await _saleRepository.GetByIdAsync(id);
+            DateTime reportDate;
+
+            if (string.IsNullOrWhiteSpace(date))
+            {
+                reportDate = DateTime.Today;
+            }
+            else
+            {
+                var parsedDate = Procesos.ParseFechaFlexible(date);
+                if (parsedDate is null)
+                    throw new BusinessException("Fecha no válida. Use el formato dd-MM-yyyy.", HttpStatusCode.BadRequest);
+
+                reportDate = DateTime.ParseExact(parsedDate, "dd/MM/yyyy", CultureInfo.InvariantCulture);
+            }
+
+            // RN-10: el reporte solo considera ventas activas.
+            var sellers = (await _unitOfWork.SaleRepository.GetDailyReportAsync(reportDate)).ToList();
+
+            return new CashCloseReportDto
+            {
+                Date = reportDate.ToString("yyyy-MM-dd"),
+                TotalSales = sellers.Sum(s => s.SalesCount),
+                TotalAmount = Math.Round(sellers.Sum(s => s.SubTotal), 2, MidpointRounding.AwayFromZero),
+                Sellers = sellers
+            };
+        }
+
+        public async Task AnnulSaleAsync(int id)
+        {
+            var sale = await _unitOfWork.SaleRepository.GetByIdAsync(id);
             if (sale == null)
                 throw new BusinessException("Venta no encontrada.", HttpStatusCode.NotFound);
 
@@ -100,8 +137,8 @@ namespace NexoMovil.Services.Services
 
             sale.IsActive = false;
 
-            _saleRepository.Update(sale);
-            await _saleRepository.SaveChangesAsync();
+            _unitOfWork.SaleRepository.Update(sale);
+            await _unitOfWork.SaveChangesAsync();
         }
     }
 }

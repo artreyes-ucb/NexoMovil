@@ -16,11 +16,6 @@ namespace NexoMovil.Infrastructure.Repositories
             _entities = context.Set<T>();
         }
 
-        public async Task<IEnumerable<T>> GetAllAsync()
-        {
-            return await _entities.ToListAsync();
-        }
-
         public async Task<T?> GetByIdAsync(int id)
         {
             return await _entities.FindAsync(id);
@@ -43,11 +38,6 @@ namespace NexoMovil.Infrastructure.Repositories
                 throw new KeyNotFoundException($"{typeof(T).Name} no encontrado.");
 
             _entities.Remove(entity);
-        }
-
-        public async Task SaveChangesAsync()
-        {
-            await _context.SaveChangesAsync();
         }
     }
 }

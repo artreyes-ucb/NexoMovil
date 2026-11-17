@@ -1,38 +1,26 @@
 using Microsoft.EntityFrameworkCore;
+using NexoMovil.Core.DTOs;
 using NexoMovil.Core.Entities;
 using NexoMovil.Core.Interfaces;
 using NexoMovil.Infrastructure.Data;
+using NexoMovil.Infrastructure.Queries;
 
 namespace NexoMovil.Infrastructure.Repositories
 {
     public class InvoiceRepository : BaseRepository<Invoice>, IInvoiceRepository
     {
-        public InvoiceRepository(NexoMovilContext context) : base(context) { }
+        private readonly IDapperContext _dapper;
+
+        public InvoiceRepository(NexoMovilContext context, IDapperContext dapper)
+            : base(context)
+        {
+            _dapper = dapper;
+        }
 
         // RN-12: una venta solo puede tener una factura.
         public async Task<bool> ExistsBySaleIdAsync(int saleId)
         {
             return await _entities.AnyAsync(i => i.SaleId == saleId);
-        }
-
-        public async Task<Invoice?> GetByIdWithDetailsAsync(int id)
-        {
-            return await WithDetails()
-                .FirstOrDefaultAsync(i => i.Id == id);
-        }
-
-        public async Task<Invoice?> GetBySaleIdWithDetailsAsync(int saleId)
-        {
-            return await WithDetails()
-                .FirstOrDefaultAsync(i => i.SaleId == saleId);
-        }
-
-        // CU-04: listar todas las facturas con sus datos relacionados.
-        public async Task<IEnumerable<Invoice>> GetAllWithDetailsAsync()
-        {
-            return await WithDetails()
-                .OrderBy(i => i.Id)
-                .ToListAsync();
         }
 
         // RN-13: número único con formato institucional PH-2026-000001.
@@ -59,13 +47,18 @@ namespace NexoMovil.Infrastructure.Repositories
             return $"{prefix}{next:D6}";
         }
 
-        private IQueryable<Invoice> WithDetails()
+        public async Task<InvoiceDto?> GetByIdDapperAsync(int id)
         {
-            return _entities
-                .Include(i => i.Sale)
-                    .ThenInclude(s => s.Product)
-                .Include(i => i.Sale)
-                    .ThenInclude(s => s.User);
+            return await _dapper.QueryFirstOrDefaultAsync<InvoiceDto>(
+                InvoiceQueries.GetById,
+                new { Id = id });
+        }
+
+        public async Task<InvoiceDto?> GetBySaleIdDapperAsync(int saleId)
+        {
+            return await _dapper.QueryFirstOrDefaultAsync<InvoiceDto>(
+                InvoiceQueries.GetBySaleId,
+                new { SaleId = saleId });
         }
     }
 }

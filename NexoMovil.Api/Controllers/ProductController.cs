@@ -5,6 +5,7 @@ using NexoMovil.Api.Response;
 using NexoMovil.Core.DTOs;
 using NexoMovil.Core.Entities;
 using NexoMovil.Core.Exceptions;
+using NexoMovil.Core.QueryFilters;
 using NexoMovil.Services.Interfaces;
 using NexoMovil.Services.Validators.Product;
 using System.Net;
@@ -38,9 +39,9 @@ namespace NexoMovil.Api.Controllers
         // CU-03: Consultar Stock. Se mantiene el listado de productos con stock.
         // GET: api/product
         [HttpGet]
-        public async Task<IActionResult> GetAll()
+        public async Task<IActionResult> GetAll([FromQuery] ProductQueryFilter filter)
         {
-            var products = await _productService.GetAvailableProductsAsync();
+            var products = await _productService.GetProductsAsync(filter);
             var productDtos = _mapper.Map<IEnumerable<ProductDto>>(products);
 
             var response = new ApiResponse<IEnumerable<ProductDto>>(productDtos);
@@ -68,8 +69,8 @@ namespace NexoMovil.Api.Controllers
             if (limit <= 0)
                 throw new BusinessException("El límite debe ser mayor a cero.", HttpStatusCode.BadRequest);
 
-            var products = await _productService.GetAvailableProductsAsync();
-            var productDtos = _mapper.Map<IEnumerable<ProductDto>>(products.Take(limit));
+            var products = await _productService.GetAvailableProductsAsync(limit);
+            var productDtos = _mapper.Map<IEnumerable<ProductDto>>(products);
 
             return Ok(new ApiResponse<IEnumerable<ProductDto>>(productDtos));
         }

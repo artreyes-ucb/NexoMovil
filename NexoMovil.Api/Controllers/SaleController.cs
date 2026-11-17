@@ -5,6 +5,7 @@ using NexoMovil.Api.Response;
 using NexoMovil.Core.DTOs;
 using NexoMovil.Core.Entities;
 using NexoMovil.Core.Exceptions;
+using NexoMovil.Core.QueryFilters;
 using NexoMovil.Services.Interfaces;
 using NexoMovil.Services.Validators.Sale;
 using System.Net;
@@ -31,10 +32,9 @@ namespace NexoMovil.Api.Controllers
 
         // GET: api/sale (CU-02: listar ventas)
         [HttpGet]
-        public async Task<IActionResult> GetSales()
+        public async Task<IActionResult> GetSales([FromQuery] SaleQueryFilter filter)
         {
-            var sales = await _saleService.GetAllSalesAsync();
-            var saleDtos = _mapper.Map<IEnumerable<SaleResponseDto>>(sales);
+            var saleDtos = await _saleService.GetSalesAsync(filter);
 
             var response = new ApiResponse<IEnumerable<SaleResponseDto>>(saleDtos);
             return Ok(response);
@@ -48,10 +48,20 @@ namespace NexoMovil.Api.Controllers
             if (limit <= 0)
                 throw new BusinessException("El límite debe ser mayor a cero.", HttpStatusCode.BadRequest);
 
-            var sales = await _saleService.GetAllSalesAsync();
-            var saleDtos = _mapper.Map<IEnumerable<SaleResponseDto>>(sales.Take(limit));
+            var saleDtos = await _saleService.GetAllSalesDapperAsync(limit);
 
             var response = new ApiResponse<IEnumerable<SaleResponseDto>>(saleDtos);
+            return Ok(response);
+        }
+
+        // CU-05: reporte de cierre de caja diario.
+        // GET: api/sale/reporte/cierre-diario?date=01-11-2026
+        [HttpGet("reporte/cierre-diario")]
+        public async Task<IActionResult> GetDailyCashCloseReport([FromQuery] string? date = null)
+        {
+            var report = await _saleService.GetDailyCashCloseReportAsync(date);
+
+            var response = new ApiResponse<CashCloseReportDto>(report);
             return Ok(response);
         }
 
@@ -63,20 +73,20 @@ namespace NexoMovil.Api.Controllers
             if (sale == null)
                 throw new BusinessException("Venta no encontrada.", HttpStatusCode.NotFound);
 
-            var response = new ApiResponse<SaleResponseDto>(_mapper.Map<SaleResponseDto>(sale));
+            var response = new ApiResponse<SaleResponseDto>(sale);
             return Ok(response);
         }
 
-        // DELETE: api/sale/1 (baja lógica, RN-05)
+        // DELETE: api/sale/1 (CU-06: baja lógica, RN-05)
         [HttpDelete("{id:int}")]
-        public async Task<IActionResult> DeleteSale(int id)
+        public async Task<IActionResult> AnnulSale(int id)
         {
             if (id <= 0)
                 throw new BusinessException("El ID debe ser mayor que cero.", HttpStatusCode.BadRequest);
 
             try
             {
-                await _saleService.DeleteSaleAsync(id);
+                await _saleService.AnnulSaleAsync(id);
 
                 var response = new ApiResponse<string>("Venta anulada correctamente.");
                 return Ok(response);

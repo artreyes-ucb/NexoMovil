@@ -1,13 +1,17 @@
+using NexoMovil.Core.DTOs;
 using NexoMovil.Core.Entities;
+using NexoMovil.Core.QueryFilters;
 
 namespace NexoMovil.Services.Interfaces
 {
     public interface ISaleService
     {
-        Task<IEnumerable<Sale>> GetAllSalesAsync();
-        Task<Sale?> GetSaleByIdAsync(int id);
+        Task<IEnumerable<SaleResponseDto>> GetAllSalesDapperAsync(int limit = 10);
+        Task<IEnumerable<SaleResponseDto>> GetSalesAsync(SaleQueryFilter filter);
+        Task<SaleResponseDto?> GetSaleByIdAsync(int id);
         Task<Sale> InsertSaleAsync(Sale sale);
         Task UpdateSaleAsync(Sale sale);
-        Task DeleteSaleAsync(int id);
+        Task<CashCloseReportDto> GetDailyCashCloseReportAsync(string? date);
+        Task AnnulSaleAsync(int id);
     }
 }
