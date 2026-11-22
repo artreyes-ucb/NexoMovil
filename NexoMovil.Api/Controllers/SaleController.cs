@@ -1,9 +1,11 @@
 ﻿using AutoMapper;
 using FluentValidation;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using NexoMovil.Api.Response;
 using NexoMovil.Core.DTOs;
 using NexoMovil.Core.Entities;
+using NexoMovil.Core.Enums;
 using NexoMovil.Core.Exceptions;
 using NexoMovil.Core.QueryFilters;
 using NexoMovil.Services.Interfaces;
@@ -12,6 +14,7 @@ using System.Net;
 
 namespace NexoMovil.Api.Controllers
 {
+    [Authorize]
     [Route("api/[controller]")]
     [ApiController]
     public class SaleController : ControllerBase
@@ -54,8 +57,9 @@ namespace NexoMovil.Api.Controllers
             return Ok(response);
         }
 
-        // CU-05: reporte de cierre de caja diario.
+        // CU-05: reporte de cierre de caja diario. Solo Administrador.
         // GET: api/sale/reporte/cierre-diario?date=01-11-2026
+        [Authorize(Roles = nameof(RoleType.Admin))]
         [HttpGet("reporte/cierre-diario")]
         public async Task<IActionResult> GetDailyCashCloseReport([FromQuery] string? date = null)
         {
@@ -77,7 +81,8 @@ namespace NexoMovil.Api.Controllers
             return Ok(response);
         }
 
-        // DELETE: api/sale/1 (CU-06: baja lógica, RN-05)
+        // DELETE: api/sale/1 (CU-06: baja lógica, RN-05). Solo Administrador.
+        [Authorize(Roles = nameof(RoleType.Admin))]
         [HttpDelete("{id:int}")]
         public async Task<IActionResult> AnnulSale(int id)
         {

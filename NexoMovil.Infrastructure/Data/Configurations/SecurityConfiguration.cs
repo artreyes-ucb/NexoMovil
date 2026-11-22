@@ -1,10 +1,15 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using NexoMovil.Core.Entities;
 
 namespace NexoMovil.Infrastructure.Data.Configurations
 {
-    public class UserConfiguration : IEntityTypeConfiguration<User>
+    /// <summary>
+    /// Configuración de seguridad de la entidad User (tabla users).
+    /// En NexoMovil, User cumple el papel de Security del documento:
+    /// contiene el login, la contraseña y el rol.
+    /// </summary>
+    public class SecurityConfiguration : IEntityTypeConfiguration<User>
     {
         public void Configure(EntityTypeBuilder<User> entity)
         {
@@ -19,6 +24,10 @@ namespace NexoMovil.Infrastructure.Data.Configurations
             entity.Property(e => e.LastName)
                 .IsRequired()
                 .HasMaxLength(50);
+
+            // RN-04: el correo electrónico debe ser único.
+            entity.HasIndex(e => e.Email, "UQ_User_Email")
+                .IsUnique();
 
             entity.Property(e => e.Email)
                 .IsRequired()

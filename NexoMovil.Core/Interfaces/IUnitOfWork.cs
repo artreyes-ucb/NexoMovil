@@ -7,6 +7,7 @@ namespace NexoMovil.Core.Interfaces
         IProductRepository ProductRepository { get; }
         ISaleRepository SaleRepository { get; }
         IUserRepository UserRepository { get; }
+        ISecurityRepository SecurityRepository { get; }
         IInvoiceRepository InvoiceRepository { get; }
 
         void SaveChanges();

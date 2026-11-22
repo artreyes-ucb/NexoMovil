@@ -14,6 +14,7 @@ namespace NexoMovil.Infrastructure.Repositories
         private IProductRepository? _productRepository;
         private ISaleRepository? _saleRepository;
         private IUserRepository? _userRepository;
+        private ISecurityRepository? _securityRepository;
         private IInvoiceRepository? _invoiceRepository;
 
         private IDbContextTransaction? _efTransaction;
@@ -31,7 +32,10 @@ namespace NexoMovil.Infrastructure.Repositories
             _saleRepository ??= new SaleRepository(_context, _dapper);
 
         public IUserRepository UserRepository =>
-            _userRepository ??= new UserRepository(_context);
+            _userRepository ??= new UserRepository(_context, _dapper);
+
+        public ISecurityRepository SecurityRepository =>
+            _securityRepository ??= new SecurityRepository(_context);
 
         public IInvoiceRepository InvoiceRepository =>
             _invoiceRepository ??= new InvoiceRepository(_context, _dapper);
